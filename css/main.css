@@ -1,0 +1,32 @@
+.modal_ctn{
+    background-color: lightgray;
+    padding: 5px;
+    width: min-content;
+}
+
+input#hueControl[type="range"] {
+    width: 100%;
+    -webkit-appearance: none;
+    background: linear-gradient(to right, red, yellow, lime, cyan, blue, magenta, red);
+    border-radius: 5px;
+    height: 10px;
+    cursor: pointer;
+  }
+
+  input#opacityControl[type="range"]{
+    width: 100%;
+    -webkit-appearance: none;
+    border-radius: 5px;
+    height: 10px;
+    cursor: pointer;
+  }
+  
+input#hueControl[type="range"]::-webkit-slider-thumb,
+input#opacityControl[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background-color: white;
+    border: 2px solid #666;
+  }
