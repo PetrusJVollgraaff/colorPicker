@@ -19,6 +19,7 @@ input#hueControl[type="range"] {
     border-radius: 5px;
     height: 10px;
     cursor: pointer;
+    border: 0.5px solid rgba(0, 0, 0, 0.3)
   }
   
 input#hueControl[type="range"]::-webkit-slider-thumb,
@@ -29,4 +30,32 @@ input#opacityControl[type="range"]::-webkit-slider-thumb {
     border-radius: 50%;
     background-color: white;
     border: 2px solid #666;
+  }
+
+  .color_prev{
+    width: 30px;
+    height:30px;
+  }
+
+  div.col_3{
+    display:grid;
+    grid-template-columns: repeat(3, 33%);
+    column-gap: 2px;
+    margin-bottom: 25px
+  }
+
+  div.col_3 input{
+      width: 30px;
+  }
+
+  div.col_3 label{
+    position: relative;
+  }
+  div.col_3 label::after{
+    content:attr(title);
+    color: black;
+    font-size: 16px;
+    position: absolute;
+    bottom: -20px;
+    left: 10px;
   }

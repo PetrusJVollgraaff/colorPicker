@@ -2,13 +2,12 @@ class Modal{
   constructor(options){
     this.settings = {
       ...{
-        title: "Color Picker",
+        title: "Modal",
         buttons: undefined,
         content: undefined,
         customClass: undefined,
         outsideClose: true,
         onClose: undefined,
-        outsideClose: true,
         onOpen: undefined,
         width: 150,
         height: 100,
@@ -17,39 +16,46 @@ class Modal{
       },
       ...options,
     };
-    //this.loadingContent = false;
     this.popupEl = null;
-
-    console.log(this.settings)
 
     if (typeof this.settings.autoOpen != "undefined"){
       if (this.settings.autoOpen){
-        console.log("world")
         this.open();
       }
     }
   }
 
   #buildModal() {
-    return (
-      `<div class="modal_ctn">` +
-      `<div class="modal_innerctn">` +
-      `<div class="content_ctn"></div>` +
-      `<div class="btn_ctn"></div>` +
-      `</div></div>`
-    );
+    const CtnDiv = document.createElement('div')
+    const InnerCtnDiv = document.createElement('div') 
+    const ContentDiv = document.createElement('div') 
+    const BtnDiv = document.createElement('div') 
+    if(this.settings.customClass != undefined){
+      CtnDiv.classList.add(this.settings.customClass)
+    }
+    
+    CtnDiv.classList.add("modal_ctn")
+    InnerCtnDiv.classList.add("modal_innerctn")
+    ContentDiv.classList.add("content_ctn")
+    BtnDiv.classList.add("btn_ctn")
+    
+    CtnDiv.appendChild(InnerCtnDiv)
+    InnerCtnDiv.appendChild(ContentDiv)
+    InnerCtnDiv.appendChild(BtnDiv)
+
+
+    return CtnDiv;
   }
 
   #loadContent(fallback) {
     if (this.popupEl != null){
-      //this.loadingContent = true;
       var contentCtn = this.popupEl.getElementsByClassName("content_ctn");
-      if( typeof this.settings.content == "string"){
-        contentCtn[0].innerHTML = this.settings.content;
-      }else if( typeof this.settings.content == "object"){
-        contentCtn[0].appendChild(this.settings.content);
-      }
       
+      switch(typeof this.settings.content){
+        case "string": contentCtn[0].innerHTML = this.settings.content; break;
+        case "string": contentCtn[0].appendChild(this.settings.content); break;
+      }
+            
       this.#loadButtons();
 
       if (typeof fallback == "function")fallback();
@@ -71,7 +77,7 @@ class Modal{
         }
 
         if (btn.customClass != undefined){
-            button.classList.appendChild(btn.customClass)
+            button.classList.add(btn.customClass)
         }
 
         if(btn.title != undefined ){
@@ -88,14 +94,13 @@ class Modal{
   }
 
   open() {
-    var modal = this.#buildModal();
-    var body = document.getElementsByTagName("body");
-    body[0].insertAdjacentHTML("beforeend", modal);
+    const modal = this.#buildModal();
+    const body = document.getElementsByTagName("body");
+    body[0].appendChild(modal);
 
     this.popupEl = body[0].lastChild;
 
     this.#loadContent(() => {
-      console.log("world")
       if (typeof this.settings.onOpen == "function") {
         this.settings.onOpen(this);
       }
@@ -112,58 +117,128 @@ class Modal{
 }
 
 class ColorPicker{
-  constructor(colorOp,elem){
-    this.colorOp = {
-      ...{
-          hue: 0,
-      saturation: 0.5,
-      lightness: 0.5,
-      showFill: true,
-      opacity: 1
+  Inputs = {
+    hsl : [
+      {
+        id: "HInput",
+        title: "H",
+        max: "360",
+        min: "0",
+        step: "1",
+        type: "number",
+        onchange: (e) => this.#changeHue(e.currentTarget.value),
+      oninput: (e) => this.#changeHue(e.currentTarget.value, false),
+      },{
+        id: "SInput",
+        title: "S",
+        max: "100",
+        min: "0",
+        step: "1",
+        type: "number",
+        onchange: (e) => this.#changeSat(e.currentTarget.value),
+        oninput: (e) => this.#changeSat(e.currentTarget.value, false),
+      },{
+        id: "LInput",
+        title: "L",
+        max: "100",
+        min: "0",
+        step: "1",
+        type: "number",
+        onchange: (e) => this.#changeLight(e.currentTarget.value),
+        oninput: (e) => this.#changeLight(e.currentTarget.value, false),
       }
-      ,...colorOp
+    ],
+
+    rgb : [
+      {
+        id: "RInput",
+        title: "R",
+        max: "255",
+        min: "0",
+        step: "1",
+        type: "number",
+        onchange: (e) => this.#changeRed(e.currentTarget.value),
+      oninput: (e) => this.#changeRed(e.currentTarget.value, false),
+      },{
+        id: "GInput",
+        title: "G",
+        max: "255",
+        min: "0",
+        step: "1",
+        type: "number",
+        onchange: (e) => this.#changeGreen(e.currentTarget.value),
+        oninput: (e) => this.#changeGreen(e.currentTarget.value, false),
+      },{
+        id: "BInput",
+        title: "B",
+        max: "255",
+        min: "0",
+        step: "1",
+        type: "number",
+        onchange: (e) => this.#changeBlue(e.currentTarget.value),
+        oninput: (e) => this.#changeBlue(e.currentTarget.value, false),
+      }
+    ],
+
+    hex : [
+      ,{
+        id: "HexInput",
+        title: "Hex",
+        type: "text",
+        pattern: "^#(?:[0-9a-fA-F]{3,4}){1,2}$",
+        onchange: (e) => this.#setHexValue('new',e.currentTarget.value),
+        oninput: (e) => this.#setHexValue('new',e.currentTarget.value, false),
+      }
+    ]
+  }
+  
+  
+  constructor(colorOp,elem, hexvalue){
+    this.colorOp = {
+      showFill: true,
+      hex: hexvalue
     };
     
     this.elem = elem;
     this.colortype = "hsl"
+    
+    this.#setHSL_RGB()
 
     this.slCanvas = document.createElement("canvas");
     this.slCtx = this.slCanvas.getContext("2d");
     this.slCanvas.width = 150;
     this.slCanvas.height = 150;
         
-    this.outputCanvas = document.createElement("canvas");
-    this.outputCanvas.width = 30;
-    this.outputCanvas.height = 30;
+    this.outputCanvas = document.createElement("div");
+    this.outputCanvas.classList.add("color_prev")
 
     this.opacityControl = document.createElement('input')
     this.mainDiv = document.createElement('div')
     this.#buildContent()
 
+    this.modalshow=false
+
     this.modal = new Modal({
-      //content: this.mainDiv,
+      title: "Color Picker",
       autoOpen: false,
       onOpen:(modal)=>{
-        console.log(modal)
         var contentCtn = modal.popupEl.getElementsByClassName("content_ctn");
         contentCtn[0].appendChild(this.mainDiv)
-        this.#setColor()
         this.#addColorEvent()
+        this.#setColor()
 
       },
       buttons: [
         {
           title: "Apply",
-          click: function (modal) {
-            console.log("hello");
-            console.log(modal);
+          click: (modal)=> {
+            this.elem.style.background = `hsla(${this.colorOp.hsl.h}, ${this.colorOp.hsl.s}%, ${this.colorOp.hsl.l}%, ${Number(this.colorOp.hsl.a)})`
             modal.close();
           },
         },
         {
           title: "Cancel",
           click: function (modal) {
-            console.log("world");
             modal.close();
           },
         },
@@ -175,9 +250,13 @@ class ColorPicker{
 
   #init(){
     this.elem.addEventListener("click", (e)=>{
-      this.modal.open()
+      if(!this.modalshow){
+        this.modal.open()
+      }else{
+        this.modal.close()
+      }
+      this.modalshow = !this.modalshow
     });
-    console.log("hello")
   }
 
   #buildContent(){
@@ -187,7 +266,7 @@ class ColorPicker{
     this.#NumberInput()
   }
 
-  #rangeInput(elm){
+  #rangeInput(){
     var hueControl = document.createElement('input')
 
     this.#setAttributes(hueControl, {
@@ -199,7 +278,7 @@ class ColorPicker{
       oninput: (e) => this.#changeHue(e.currentTarget.value, false),
       title: "Hue",
       type: "range",
-      value: this.colorOp.hue,
+      value: this.colorOp.hsl.h,
     })
 
     this.#setAttributes(this.opacityControl, {
@@ -211,7 +290,7 @@ class ColorPicker{
       oninput: (e) => this.#changeOpacity(e.currentTarget.value, false),
       title: "Opacity",
       type: "range",
-      value: this.colorOp.opacity,
+      value: this.colorOp.hsl.a,
     })
 
     this.mainDiv.appendChild(hueControl);
@@ -219,62 +298,22 @@ class ColorPicker{
   }
 
   #NumberInput(){
-    console.log("hello")
     var divcont  = document.createElement('div')
-    var label1 = document.createElement('label')
-    var label2 = document.createElement('label')
-    var label3 = document.createElement('label')
+    divcont.classList.add("col_3")
+    const inputs = this.Inputs[this.colortype]
+
+    inputs.forEach((input, idx)=>{
+      var labelElm = document.createElement('label')
+      var inputElm = document.createElement('input')
+      
+      divcont.appendChild(labelElm);
+      labelElm.appendChild(inputElm);
+
+      this.#setAttributes(inputElm, input)
+      this.#setAttributes(labelElm, {for:input.id, title:input.title})
+    })
     
-    divcont.appendChild(label1);
-    divcont.appendChild(label2);
-    divcont.appendChild(label3);
-
-    divcont.classList.add("3-col")
-    if(this.colortype = "hsl"){
-      var Hinput = document.createElement('input')
-      var Sinput = document.createElement('input')
-      var Linput = document.createElement('input')
-      this.#setAttributes(Hinput, {
-        id: "HInput",
-        title: "H",
-        max: "360",
-        min: "0",
-        step: "1",
-        type: "number",
-        value: this.colorOp.hue,
-        onchange: (e) => this.#changeHue(e.currentTarget.value),
-      oninput: (e) => this.#changeHue(e.currentTarget.value, false),
-      })
-
-      this.#setAttributes(Sinput, {
-        id: "SInput",
-        title: "S",
-        max: "100",
-        min: "0",
-        step: "1",
-        type: "number",
-        value: this.colorOp.saturation * 100,
-        onchange: (e) => this.#changeSat(e.currentTarget.value),
-        oninput: (e) => this.#changeSat(e.currentTarget.value, false),
-      })
-
-      this.#setAttributes(Linput, {
-        id: "LInput",
-        title: "L",
-        max: "100",
-        min: "0",
-        step: "1",
-        type: "number",
-        value: this.colorOp.lightness * 100,
-        onchange: (e) => this.#changeLight(e.currentTarget.value),
-        oninput: (e) => this.#changeLight(e.currentTarget.value, false),
-      })
-
-      label1.appendChild(Hinput);
-      label2.appendChild(Sinput);
-      label3.appendChild(Linput);
-    }
-
+    
     this.mainDiv.appendChild(divcont);
   }
 
@@ -290,58 +329,88 @@ class ColorPicker{
 	  }
   }
 
-  #showOutputColor(hue, saturation, lightness, opacity, showFill, canvas) {
-    const ctx = canvas.getContext("2d");
-    if (showFill) {
-      console.log(`hsla(${hue}, ${saturation * 100}%, ${lightness * 100}%, ${opacity})`)
-      ctx.fillStyle = `hsla(${hue}, ${saturation * 100}%, ${lightness * 100}%, ${Number(opacity)})`;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-    } else {
-      ctx.fillStyle = "white";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.strokeStyle = "red";
-      ctx.lineWidth = 2;
-      ctx.moveTo(0, 0);
-      ctx.lineTo(canvas.width, canvas.height);
-      ctx.stroke();
-    }
+  #showOutputColor() {
+    var opacity = this.colorOp.hsl.a
+    console.log(opacity, this.colorOp.showFill)
+    var background = (this.colorOp.showFill && Number(opacity) > 0)?
+        `hsla(${this.colorOp.hsl.h}, ${this.colorOp.hsl.s}%, ${this.colorOp.hsl.l}%, ${Number(this.colorOp.hsl.a)})` :
+          ((this.colorOp.showFill && Number(opacity) == 0) || !this.colorOp.showFill )?
+            `linear-gradient(to bottom right, white calc(50% - 1px), red,white calc(50% + 1px) )` :
+            'white'
+    
+
+    this.outputCanvas.style.background = background 
+  }
+
+  #changeRed(value){
+    this.colorOp.rgb.r = value
+    this.#setRGBtoHSL()
+  }
+  #changeGreen(value){
+    this.colorOp.rgb.g = value
+    this.#setRGBtoHSL()
+  }
+  #changeBlue(value){
+    this.colorOp.rgb.b = value
+    this.#setRGBtoHSL()
   }
 
   #changeOpacity(value){
-    this.colorOp.opacity = value;
+    this.colorOp.hsl.a = value;
+    this.colorOp.rgb.a = value;
+    this.#setHexValue("convert")
     this.#setColor()
   }
 
+  #setHSL_RGB(){
+    this.colorOp.hsl = ColorConvertor.hexToHsl(this.colorOp.hex)
+    this.colorOp.rgb = ColorConvertor.hexToRgb(this.colorOp.hex)
+  }
+
+  #setHexValue(op, value){
+    if(op == "convert"){
+      this.colorOp.hex = ColorConvertor.rgbToHex(this.colorOp.rgb.r, this.colorOp.rgb.g, this.colorOp.rgb.b, this.colorOp.rgb.a)
+    }else{
+      this.colorOp.hex = value
+      this.#setHSL_RGB()
+    }  
+  }
+
+  #setRGBtoHSL(){
+    this.#setHexValue("convert")
+    this.colorOp.hsl = ColorConvertor.hexToHsl(this.colorOp.hex)
+  }
+
+  #setHSLtoRGB(){
+    this.colorOp.rgb = ColorConvertor.hslToRgb(this.colorOp.hsl.h, this.colorOp.hsl.s, this.colorOp.hsl.l, this.colorOp.hsl.a);
+    this.#setHexValue("convert")
+  }
   #changeHue(value, save = true) {
     var newVal = (value < 0)? value % 360 : (value > 360)? value % 360 : (value == "")? 0 : value
-    console.log(newVal)
-    
-    this.colorOp.hue = newVal;
+        
+    this.colorOp.hsl.h = newVal;
+    this.#setHSLtoRGB()
     this.#setColor()
   }
 
   #changeSat(value){
     var newVal = (value < 0)? value % 100 : (value > 100)? value % 100 : (value == "")? 0: value
-    this.colorOp.saturation = newVal / 100;
+    this.colorOp.hsl.s = newVal * 100;
+    this.#setHSLtoRGB()
+    
     this.#setColor()
   }
 
   #changeLight(value){
     var newVal = (value < 0)? value % 100 : (value > 100)? value % 100 : (value == "")? 0: value
-    this.colorOp.lightness = newVal / 100;
+    this.colorOp.hsl.l = newVal * 100;
+    this.#setHSLtoRGB()
     this.#setColor()
   }
 
   #setColor(){
-    this.#generateSLGradient(this.colorOp.hue, this.slCtx);
-    this.#showOutputColor(
-        this.colorOp.hue,
-      this.colorOp.saturation,
-      this.colorOp.lightness,
-      this.colorOp.opacity,
-      this.colorOp.showFill,
-      this.outputCanvas
-    );
+    this.#generateSLGradient();
+    this.#showOutputColor();
 
     this.opacityControl.style.background = "linear-gradient(to right, transparent, "+this.getFill()+")";
     this.#setInputVal()
@@ -349,18 +418,21 @@ class ColorPicker{
 
   #setInputVal(){
     if(this.colortype = "hsl"){
-      HInput.value = this.colorOp.hue;
-      SInput.value = this.colorOp.saturation * 100;
-      LInput.value = this.colorOp.lightness * 100;
+      HInput.value = this.colorOp[this.colortype].h;
+      SInput.value = this.colorOp[this.colortype].s;
+      LInput.value = this.colorOp[this.colortype].l;
+    }else if(this.colortype = "rgb"){
+      RInput.value = this.colorOp[this.colortype].r;
+      GInput.value = this.colorOp[this.colortype].g;
+      BInput.value = this.colorOp[this.colortype].b;
+    }else{
+      HexInput.value = this.colorOp.hex;
     }
   }
 
   getFill(){
-    if(this.colorOp.showFill){
-       return `hsl(${this.colorOp.hue}, ${this.colorOp.saturation * 100}%, ${this.colorOp.lightness * 100}%)`;
-    }else{
-       return null;
-    }
+    return (this.colorOp.showFill)?
+        `hsl(${this.colorOp.hsl.h}, ${this.colorOp.hsl.s}%, ${this.colorOp.hsl.l}%)`: null
   }
 
   #addColorEvent(){
@@ -377,18 +449,18 @@ class ColorPicker{
   #updateSL(e) {
     const x = e.offsetX;
     const y = e.offsetY;
-    this.colorOp.saturation = x / this.slCanvas.width;
+    this.colorOp.hsl.s = (x / this.slCanvas.width) * 100;
     const lightnessDecreaseFactor = 1 - (0.5 * x) / this.slCanvas.width;
-    this.colorOp.lightness =
-        1 -
+    this.colorOp.hsl.l =
+        (1 -
         0.5 * (x / this.slCanvas.width) ** 1 -
-        (y / this.slCanvas.height) * lightnessDecreaseFactor;
+        (y / this.slCanvas.height) * lightnessDecreaseFactor) * 100;
 
     this.#setColor()
   }
 
-  #generateSLGradient(hue, ctx) {
-    const { width, height } = ctx.canvas;
+  #generateSLGradient() {
+    const { width, height } = this.slCtx.canvas;
 
     // To-Do speedup this
     const stepSize = 2;
@@ -398,34 +470,32 @@ class ColorPicker{
         const lightnessDecreaseFactor = 1 - (0.5 * x) / width;
         const lightness =
           1 - 0.5 * (x / width) ** 1 - (y / height) * lightnessDecreaseFactor;
-        ctx.fillStyle = `hsl(${hue}, ${saturation * 100}%, ${
-          lightness * 100
-        }%)`;
-        ctx.fillRect(x, y, stepSize, stepSize);
+          this.slCtx.fillStyle = `hsl(${this.colorOp.hsl.h}, ${saturation * 100}%, ${lightness * 100}%)`;
+        this.slCtx.fillRect(x, y, stepSize, stepSize);
       }
     }
 
     // Warning, inverting the formula must be done again if we change it
-    const dotX = this.colorOp.saturation * width;
+    const dotX = (this.colorOp.hsl.s/100) * width;
     const lightnessDecreaseFactor = 1 - (0.5 * dotX) / width;
     const dotY =
-      (-(this.colorOp.lightness - 1 + 0.5 * (dotX / width) ** 1) /
+      (-((this.colorOp.hsl.l/100) - 1 + 0.5 * (dotX / width) ** 1) /
         lightnessDecreaseFactor) *
       height;
 
-    ctx.strokeStyle = "white";
-    ctx.beginPath();
-    ctx.arc(dotX, dotY, 5, 0, 2 * Math.PI);
-    ctx.lineWidth = 3;
-    ctx.stroke();
-    ctx.strokeStyle = "black";
-    ctx.lineWidth = 1;
-    ctx.stroke();
+      this.slCtx.strokeStyle = "white";
+      this.slCtx.beginPath();
+      this.slCtx.arc(dotX, dotY, 5, 0, 2 * Math.PI);
+      this.slCtx.lineWidth = 3;
+      this.slCtx.stroke();
+      this.slCtx.strokeStyle = "black";
+      this.slCtx.lineWidth = 1;
+      this.slCtx.stroke();
   }
 }
 
 class ColorConvertor{
-  static hslToRgb(h, s, l) {
+  static hslToRgb(h, s, l, a=1) {
     s /= 100;
     l /= 100;
   
@@ -446,22 +516,22 @@ class ColorConvertor{
     g = Math.round((g + m) * 255);
     b = Math.round((b + m) * 255);
   
-    return { r, g, b };
+    return { r, g, b, a };
   }
 
-  static rgbToHex(r, g, b) {
-    return "#" + [r, g, b].map(x => {
+  static rgbToHex(r, g, b, a=1) {
+    return "#" + [r, g, b, a].map(x => {
         const hex = x.toString(16);
         return hex.length === 1 ? "0" + hex : hex;
     }).join("");
   }
 
-  static hslToHex(h, s, l) {
-    const { r, g, b } = ColorConvertor.hslToRgb(h, s, l);
-    return ColorConvertor.rgbToHex(r, g, b);
+  static hslToHex(h, s, l, alpha=1) {
+    const { r, g, b, a} = ColorConvertor.hslToRgb(h, s, l, alpha);
+    return ColorConvertor.rgbToHex(r, g, b, a);
   }
 
-  static rgbToHsl(r, g, b) {
+  static rgbToHsl(r, g, b, a=1) {
     r /= 255;
     g /= 255;
     b /= 255;
@@ -482,30 +552,54 @@ class ColorConvertor{
         h *= 60;
     }
   
-    return { h: Math.round(h), s: Math.round(s * 100), l: Math.round(l * 100) };
+    return { h: Math.round(h), s: Math.round(s * 100), l: Math.round(l * 100), a };
   }
 
   static hexToRgb(hex) {
     hex = hex.replace("#", "");
-    if (hex.length === 3) {
-        hex = hex.split("").map(c => c + c).join("");
+    if (hex.length === 3 || hex.length === 4) {
+      hex = hex.split("").map(c => c + c).join("");
     }
-  
+
+    const a = hex.length === 8 ? parseInt(hex.slice(6, 8), 16) / 255 : 1;
     const bigint = parseInt(hex, 16);
+
     return {
         r: (bigint >> 16) & 255,
         g: (bigint >> 8) & 255,
-        b: bigint & 255
+        b: bigint & 255,
+        a
     };
   }
 
   static hexToHsl(hex) {
-    const { r, g, b } = ColorConvertor.hexToRgb(hex);
-    return ColorConvertor.rgbToHsl(r, g, b);
+    const { r, g, b, a } = ColorConvertor.hexToRgb(hex);
+    return ColorConvertor.rgbToHsl(r, g, b, a);
+  }
+
+  static decimalToHexOpacity(decimal) {
+    if (decimal < 0 || decimal > 1) {
+      throw new Error("Opacity must be a decimal between 0 and 1.");
+    }
+    // Convert to 8-bit value and to hex
+    let hex = Math.round(decimal * 255).toString(16);
+    // Ensure it's two characters long
+    return hex.padStart(2, "0");
+  }
+  
+  static NumberToHex(number) {
+    if (number < 0 && number > 255) {
+      throw new Error("Value must be a number between 0 and 255.");
+    }
+    // Convert to 8-bit value and to hex
+    let hex = number.toString(16);
+    // Ensure it's two characters long
+    return hex.padStart(2, "0").toString();
   }
 } 
 
 new ColorPicker(
   {},
-  document.getElementById("color_Picker")
+  document.getElementById("color_Picker1"),
+  "#ff0000"
 );
