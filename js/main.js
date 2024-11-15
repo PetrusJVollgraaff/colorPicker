@@ -116,8 +116,6 @@ class ColorPicker {
     this.#loadButtons();
   }
 
-  
-
   #setAttributes(elm, attributes){
     if (attributes) {
 		Object.entries(attributes).forEach(([key, value]) => {
