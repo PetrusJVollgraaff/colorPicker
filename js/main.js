@@ -193,7 +193,7 @@ class ColorPicker{
   }
   
   
-  constructor(colorOp,elem, hexvalue){
+  constructor(elem, hexvalue){
     this.colorOp = {
       showFill: true,
       hex: hexvalue
@@ -263,6 +263,7 @@ class ColorPicker{
     this.mainDiv.appendChild(this.slCanvas);
     this.mainDiv.appendChild(this.outputCanvas);
     this.#rangeInput()
+    this.#SelectElm()
     this.#NumberInput()
   }
 
@@ -298,23 +299,50 @@ class ColorPicker{
   }
 
   #NumberInput(){
-    var divcont  = document.createElement('div')
-    divcont.classList.add("col_3")
+    this.divcont  = document.createElement('div')
+    if(this.colortype != "hex"){
+      this.divcont.classList.add("col_3")
+    }
+    
     const inputs = this.Inputs[this.colortype]
 
-    inputs.forEach((input, idx)=>{
+    inputs.forEach((input)=>{
       var labelElm = document.createElement('label')
       var inputElm = document.createElement('input')
-      
-      divcont.appendChild(labelElm);
+          
+      this.divcont.appendChild(labelElm);
       labelElm.appendChild(inputElm);
-
+      
       this.#setAttributes(inputElm, input)
       this.#setAttributes(labelElm, {for:input.id, title:input.title})
     })
-    
-    
-    this.mainDiv.appendChild(divcont);
+  
+    this.mainDiv.appendChild(this.divcont);
+  }
+
+  #SelectElm(){
+    var select  = document.createElement('select')
+
+    for(const key in this.Inputs){
+      var option  = document.createElement('option')
+      option.value = key
+      option.innerHTML = key.toUpperCase()
+      select.appendChild(option);
+    }
+
+    this.#setAttributes(select, {
+      value: this.colortype,
+      onchange: (e) => this.#changeColorType(e.currentTarget.value),
+    })
+
+    this.mainDiv.appendChild(select);
+  }
+
+  #changeColorType(value){
+    this.colortype = value
+    this.divcont.remove()
+    this.#NumberInput()
+    this.#setInputVal()
   }
 
   #setAttributes(elm, attributes){
@@ -346,10 +374,12 @@ class ColorPicker{
     this.colorOp.rgb.r = value
     this.#setRGBtoHSL()
   }
+
   #changeGreen(value){
     this.colorOp.rgb.g = value
     this.#setRGBtoHSL()
   }
+
   #changeBlue(value){
     this.colorOp.rgb.b = value
     this.#setRGBtoHSL()
@@ -373,32 +403,36 @@ class ColorPicker{
     }else{
       this.colorOp.hex = value
       this.#setHSL_RGB()
+      this.#setTopColor()
+      hueControl.value = this.colorOp.hsl.h
     }  
   }
 
   #setRGBtoHSL(){
     this.#setHexValue("convert")
     this.colorOp.hsl = ColorConvertor.hexToHsl(this.colorOp.hex)
+    this.#setTopColor()
+    hueControl.value = this.colorOp.hsl.h
   }
 
   #setHSLtoRGB(){
     this.colorOp.rgb = ColorConvertor.hslToRgb(this.colorOp.hsl.h, this.colorOp.hsl.s, this.colorOp.hsl.l, this.colorOp.hsl.a);
     this.#setHexValue("convert")
+    this.#setTopColor()
   }
   #changeHue(value, save = true) {
     var newVal = (value < 0)? value % 360 : (value > 360)? value % 360 : (value == "")? 0 : value
-        
+    
     this.colorOp.hsl.h = newVal;
     this.#setHSLtoRGB()
-    this.#setColor()
+    this.#setInputVal()
+    hueControl.value = this.colorOp.hsl.h
   }
 
   #changeSat(value){
     var newVal = (value < 0)? value % 100 : (value > 100)? value % 100 : (value == "")? 0: value
     this.colorOp.hsl.s = newVal * 100;
     this.#setHSLtoRGB()
-    
-    this.#setColor()
   }
 
   #changeLight(value){
@@ -408,20 +442,25 @@ class ColorPicker{
     this.#setColor()
   }
 
-  #setColor(){
+  #setTopColor(){
     this.#generateSLGradient();
     this.#showOutputColor();
 
     this.opacityControl.style.background = "linear-gradient(to right, transparent, "+this.getFill()+")";
+  }
+
+  #setColor(){
+    this.#setTopColor()
     this.#setInputVal()
   }
 
   #setInputVal(){
-    if(this.colortype = "hsl"){
+    console.log(this.colortype)
+    if(this.colortype == "hsl"){
       HInput.value = this.colorOp[this.colortype].h;
       SInput.value = this.colorOp[this.colortype].s;
       LInput.value = this.colorOp[this.colortype].l;
-    }else if(this.colortype = "rgb"){
+    }else if(this.colortype == "rgb"){
       RInput.value = this.colorOp[this.colortype].r;
       GInput.value = this.colorOp[this.colortype].g;
       BInput.value = this.colorOp[this.colortype].b;
@@ -599,7 +638,6 @@ class ColorConvertor{
 } 
 
 new ColorPicker(
-  {},
   document.getElementById("color_Picker1"),
   "#ff0000"
 );
