@@ -18,6 +18,8 @@ class Modal{
     };
     this.popupEl = null;
 
+    this.OutsideClick = this.#outsideClickListener.bind(this)
+
     if (typeof this.settings.autoOpen != "undefined"){
       if (this.settings.autoOpen){
         this.open();
@@ -26,7 +28,7 @@ class Modal{
   }
 
   #buildModal() {
-    const CtnDiv = document.createElement('div')
+    this.CtnDiv = document.createElement('div')
     const InnerCtnDiv = document.createElement('div') 
     const ContentDiv = document.createElement('div') 
     const BtnDiv = document.createElement('div') 
@@ -34,17 +36,14 @@ class Modal{
       CtnDiv.classList.add(this.settings.customClass)
     }
     
-    CtnDiv.classList.add("modal_ctn")
+    this.CtnDiv.classList.add("modal_ctn")
     InnerCtnDiv.classList.add("modal_innerctn")
     ContentDiv.classList.add("content_ctn")
     BtnDiv.classList.add("btn_ctn")
     
-    CtnDiv.appendChild(InnerCtnDiv)
+    this.CtnDiv.appendChild(InnerCtnDiv)
     InnerCtnDiv.appendChild(ContentDiv)
     InnerCtnDiv.appendChild(BtnDiv)
-
-
-    return CtnDiv;
   }
 
   #loadContent(fallback) {
@@ -94,9 +93,19 @@ class Modal{
   }
 
   open() {
-    const modal = this.#buildModal();
+    this.#buildModal();
     const body = document.getElementsByTagName("body");
-    body[0].appendChild(modal);
+    if(this.settings.overlayer){
+        this.OverDiv = createDOMElement('div', {
+            class:"overlay",
+            onclick: this.settings.outsideClose && this.settings.overlayer? this.close.bind(this) :"" 
+        })
+        this.OverDiv.appendChild(this.CtnDiv);
+        body[0].appendChild(this.OverDiv);
+      }else{
+        body[0].appendChild(this.CtnDiv);
+        this.#EventListener()
+      }
 
     this.popupEl = body[0].lastChild;
 
@@ -113,6 +122,18 @@ class Modal{
     }
 	    
     this.popupEl.remove();
+  }
+
+  #EventListener(){
+    if(!this.settings.overlayer){
+      document.addEventListener('click', this.OutsideClick);
+    }
+  }
+
+  #outsideClickListener(e){
+    if(!e.target.closest('.modal_ctn') && e.target != this.elem){
+      this.close()
+    }
   }
 }
 
@@ -144,8 +165,8 @@ class ColorPicker{
         min: "0",
         step: "1",
         type: "number",
-        onchange: (e) => this.#changeLight(e.currentTarget.value),
-        oninput: (e) => this.#changeLight(e.currentTarget.value, false),
+        onchange: (e) => this.#changeRGB("r", e.currentTarget.value),
+				oninput: (e) => this.#changeRGB("r", e.currentTarget.value, false),
       }
     ],
 
@@ -157,8 +178,8 @@ class ColorPicker{
         min: "0",
         step: "1",
         type: "number",
-        onchange: (e) => this.#changeRed(e.currentTarget.value),
-      oninput: (e) => this.#changeRed(e.currentTarget.value, false),
+        onchange: (e) => this.#changeRGB("g", e.currentTarget.value),
+				oninput: (e) => this.#changeRGB("g", e.currentTarget.value, false),
       },{
         id: "GInput",
         title: "G",
@@ -166,8 +187,8 @@ class ColorPicker{
         min: "0",
         step: "1",
         type: "number",
-        onchange: (e) => this.#changeGreen(e.currentTarget.value),
-        oninput: (e) => this.#changeGreen(e.currentTarget.value, false),
+        onchange: (e) => this.#changeRGB("g", e.currentTarget.value),
+				oninput: (e) => this.#changeRGB("g", e.currentTarget.value, false),
       },{
         id: "BInput",
         title: "B",
@@ -175,8 +196,8 @@ class ColorPicker{
         min: "0",
         step: "1",
         type: "number",
-        onchange: (e) => this.#changeBlue(e.currentTarget.value),
-        oninput: (e) => this.#changeBlue(e.currentTarget.value, false),
+        onchange: (e) => this.#changeRGB("b", e.currentTarget.value),
+				oninput: (e) => this.#changeRGB("b", e.currentTarget.value, false),
       }
     ],
 
@@ -250,11 +271,8 @@ class ColorPicker{
 
   #init(){
     this.elem.addEventListener("click", (e)=>{
-      if(!this.modalshow){
-        this.modal.open()
-      }else{
-        this.modal.close()
-      }
+      var action = (!this.modalshow)? "open" : "close"
+      this.modal[action]()
       this.modalshow = !this.modalshow
     });
   }
@@ -369,20 +387,10 @@ class ColorPicker{
     this.outputCanvas.style.background = background 
   }
 
-  #changeRed(value){
-    this.colorOp.rgb.r = value
-    this.#setRGBtoHSL()
-  }
-
-  #changeGreen(value){
-    this.colorOp.rgb.g = value
-    this.#setRGBtoHSL()
-  }
-
-  #changeBlue(value){
-    this.colorOp.rgb.b = value
-    this.#setRGBtoHSL()
-  }
+  #changeRGB(key, value) {
+		this.colorOp.rgb[key] = value;
+		this.#setRGBtoHSL();
+	}
 
   #changeOpacity(value){
     this.colorOp.hsl.a = value;
@@ -396,37 +404,37 @@ class ColorPicker{
     this.colorOp.rgb = ColorConvertor.hexToRgb(this.colorOp.hex)
   }
 
-  #setHexValue(op, value){
-    if(op == "convert"){
-      this.colorOp.hex = ColorConvertor.rgbToHex(this.colorOp.rgb.r, this.colorOp.rgb.g, this.colorOp.rgb.b, this.colorOp.rgb.a)
-    }else{
-      this.colorOp.hex = value
-      this.#setHSL_RGB()
-      this.#setTopColor()
-      hueControl.value = this.colorOp.hsl.h
-    }  
-  }
+  #setHexValue(op, value) {
+		if (op == "convert") {
+			this.colorOp.hex = ColorConvertor.hslToHex(this.colorOp.hsl);
+		} else {
+			this.colorOp.hex =
+				value + ColorConvertor.decimalToHexOpacity(this.colorOp.hsl.a);
+			this.#setHSL_RGB();
+			this.#setTopColor();
+			hueControl.value = this.colorOp.hsl.h;
+		}
+	}
 
   #setRGBtoHSL(){
-    this.#setHexValue("convert")
-    this.colorOp.hsl = ColorConvertor.hexToHsl(this.colorOp.hex)
+    this.colorOp.hsl = ColorConvertor.rgbToHsl(this.colorOp.rgb);
+		this.#setHexValue("convert");
     this.#setTopColor()
     hueControl.value = this.colorOp.hsl.h
   }
 
   #setHSLtoRGB(){
-    this.colorOp.rgb = ColorConvertor.hslToRgb(this.colorOp.hsl.h, this.colorOp.hsl.s, this.colorOp.hsl.l, this.colorOp.hsl.a);
+    this.colorOp.rgb = ColorConvertor.hslToRgb(this.colorOp.hsl);
     this.#setHexValue("convert")
     this.#setTopColor()
   }
 
   #changeHue(value, save = true) {
-    var newVal = (value < 0)? value % 360 : (value > 360)? value % 360 : (value == "")? 0 : value
+    this.colorOp.hsl.h = (value < 0)? value % 360 : (value > 360)? value % 360 : (value == "")? 0 : value
     
-    this.colorOp.hsl.h = newVal;
-    this.#setHSLtoRGB()
-    this.#setInputVal()
-    hueControl.value = this.colorOp.hsl.h
+    hueControl.value = this.colorOp.hsl.h;
+		this.#setHSLtoRGB();
+		this.#setInputVal();
   }
 
   #changeSat(value){
@@ -494,6 +502,8 @@ class ColorPicker{
         0.5 * (x / this.slCanvas.width) ** 1 -
         (y / this.slCanvas.height) * lightnessDecreaseFactor) * 100;
 
+    this.#setHexValue("convert");
+		this.colorOp.rgb = ColorConvertor.hexToRgb(this.colorOp.hex);
     this.#setColor()
   }
 
@@ -532,109 +542,158 @@ class ColorPicker{
   }
 }
 
-class ColorConvertor{
-  static hslToRgb(h, s, l, a=1) {
-    s /= 100;
-    l /= 100;
-  
-    const c = (1 - Math.abs(2 * l - 1)) * s;
-    const x = c * (1 - Math.abs((h / 60) % 2 - 1));
-    const m = l - c / 2;
-    
-    let r = 0, g = 0, b = 0;
-  
-    if (0 <= h && h < 60) { r = c; g = x; b = 0; }
-    else if (60 <= h && h < 120) { r = x; g = c; b = 0; }
-    else if (120 <= h && h < 180) { r = 0; g = c; b = x; }
-    else if (180 <= h && h < 240) { r = 0; g = x; b = c; }
-    else if (240 <= h && h < 300) { r = x; g = 0; b = c; }
-    else if (300 <= h && h < 360) { r = c; g = 0; b = x; }
-  
-    r = Math.round((r + m) * 255);
-    g = Math.round((g + m) * 255);
-    b = Math.round((b + m) * 255);
-  
-    return { r, g, b, a };
-  }
+class ColorConvertor {
+	static hslToRgb(hsla = { h: 0, s: 50, l: 50, a: 1 }) {
+		const h = hsla.h;
+		const s = hsla.s / 100;
+		const l = hsla.l / 100;
+		const a = hsla.a;
 
-  static rgbToHex(r, g, b, a=1) {
-    return "#" + [r, g, b, a].map(x => {
-        const hex = x.toString(16);
-        return hex.length === 1 ? "0" + hex : hex;
-    }).join("");
-  }
+		const c = (1 - Math.abs(2 * l - 1)) * s;
+		const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+		const m = l - c / 2;
 
-  static hslToHex(h, s, l, alpha=1) {
-    const { r, g, b, a} = ColorConvertor.hslToRgb(h, s, l, alpha);
-    return ColorConvertor.rgbToHex(r, g, b, a);
-  }
+		let r = 0,
+			g = 0,
+			b = 0;
 
-  static rgbToHsl(r, g, b, a=1) {
-    r /= 255;
-    g /= 255;
-    b /= 255;
-  
-    const max = Math.max(r, g, b);
-    const min = Math.min(r, g, b);
-    const delta = max - min;
-  
-    let h = 0, s = 0, l = (max + min) / 2;
-  
-    if (delta !== 0) {
-        s = l > 0.5 ? delta / (2 - max - min) : delta / (max + min);
-        switch (max) {
-            case r: h = ((g - b) / delta + (g < b ? 6 : 0)); break;
-            case g: h = ((b - r) / delta + 2); break;
-            case b: h = ((r - g) / delta + 4); break;
-        }
-        h *= 60;
-    }
-  
-    return { h: Math.round(h), s: Math.round(s * 100), l: Math.round(l * 100), a };
-  }
+		if (0 <= h && h < 60) {
+			r = c;
+			g = x;
+			b = 0;
+		} else if (60 <= h && h < 120) {
+			r = x;
+			g = c;
+			b = 0;
+		} else if (120 <= h && h < 180) {
+			r = 0;
+			g = c;
+			b = x;
+		} else if (180 <= h && h < 240) {
+			r = 0;
+			g = x;
+			b = c;
+		} else if (240 <= h && h < 300) {
+			r = x;
+			g = 0;
+			b = c;
+		} else if (300 <= h && h < 360) {
+			r = c;
+			g = 0;
+			b = x;
+		}
 
-  static hexToRgb(hex) {
-    hex = hex.replace("#", "");
-    if (hex.length === 3 || hex.length === 4) {
-      hex = hex.split("").map(c => c + c).join("");
-    }
+		r = Math.round((r + m) * 255);
+		g = Math.round((g + m) * 255);
+		b = Math.round((b + m) * 255);
 
-    const a = hex.length === 8 ? parseInt(hex.slice(6, 8), 16) / 255 : 1;
-    const bigint = parseInt(hex, 16);
+		return { r, g, b, a };
+	}
 
-    return {
-        r: (bigint >> 16) & 255,
-        g: (bigint >> 8) & 255,
-        b: bigint & 255,
-        a
-    };
-  }
+	static rgbToHex(rgba = { r: 0, g: 0, b: 0, a: 1 }) {
+		const { r, g, b, a } = rgba;
+		return (
+			"#" +
+			[r, g, b, a]
+				.map((x, idx) => {
+					const hex =
+						idx == 3
+							? ColorConvertor.decimalToHexOpacity(x)
+							: x.toString(16);
+					return hex.length === 1 ? "0" + hex : hex;
+				})
+				.join("")
+		);
+	}
 
-  static hexToHsl(hex) {
-    const { r, g, b, a } = ColorConvertor.hexToRgb(hex);
-    return ColorConvertor.rgbToHsl(r, g, b, a);
-  }
+	static hslToHex(hsla = { h: 0, s: 50, l: 50, alpha: 1 }) {
+		const rgba = ColorConvertor.hslToRgb(hsla);
+		return ColorConvertor.rgbToHex(rgba);
+	}
 
-  static decimalToHexOpacity(decimal) {
-    if (decimal < 0 || decimal > 1) {
-      throw new Error("Opacity must be a decimal between 0 and 1.");
-    }
-    // Convert to 8-bit value and to hex
-    let hex = Math.round(decimal * 255).toString(16);
-    // Ensure it's two characters long
-    return hex.padStart(2, "0");
-  }
-  
-  static NumberToHex(number) {
-    if (number < 0 && number > 255) {
-      throw new Error("Value must be a number between 0 and 255.");
-    }
-    // Convert to 8-bit value and to hex
-    let hex = number.toString(16);
-    // Ensure it's two characters long
-    return hex.padStart(2, "0").toString();
-  }
-} 
+	static rgbToHsl(rgba = { r: 0, g: 0, b: 0, a: 1 }) {
+		const r = rgba.r / 255;
+		const g = rgba.g / 255;
+		const b = rgba.b / 255;
+
+		const max = Math.max(r, g, b);
+		const min = Math.min(r, g, b);
+		const delta = max - min;
+
+		let h = 0,
+			s = 0,
+			l = (max + min) / 2;
+
+		if (delta !== 0) {
+			s = l > 0.5 ? delta / (2 - max - min) : delta / (max + min);
+			switch (max) {
+				case r:
+					h = (g - b) / delta + (g < b ? 6 : 0);
+					break;
+				case g:
+					h = (b - r) / delta + 2;
+					break;
+				case b:
+					h = (r - g) / delta + 4;
+					break;
+			}
+			h *= 60;
+		}
+
+		return {
+			h: Math.round(h),
+			s: Math.round(s * 100),
+			l: Math.round(l * 100),
+			a: rgba.a,
+		};
+	}
+
+	static hexToRgb(hex) {
+		hex = hex.replace("#", "");
+		if (hex.length === 3 || hex.length === 4) {
+			hex = hex
+				.split("")
+				.map((c) => c + c)
+				.join("");
+		}
+
+		const a = hex.length === 8 ? parseInt(hex.slice(6, 8), 16) / 255 : 1;
+		const bigint = parseInt(hex, 16);
+
+		return {
+			r: (bigint >> 16) & 255,
+			g: (bigint >> 8) & 255,
+			b: bigint & 255,
+			a,
+		};
+	}
+
+	static hexToHsl(hex) {
+		const rgba = ColorConvertor.hexToRgb(hex);
+		return ColorConvertor.rgbToHsl(rgba);
+	}
+
+	static decimalToHexOpacity(decimal) {
+		if (decimal < 0 || decimal > 1) {
+			throw new Error("Opacity must be a decimal between 0 and 1.");
+		}
+		// Convert to 8-bit value and to hex
+		let hex = Math.round(decimal * 255).toString(16);
+		// Ensure it's two characters long
+		return hex.padStart(2, "0");
+	}
+
+	static NumberToHex(number) {
+		if (number < 0 && number > 255) {
+			throw new Error("Value must be a number between 0 and 255.");
+		}
+		// Convert to 8-bit value and to hex
+		let hex = number.toString(16);
+		// Ensure it's two characters long
+		return hex.padStart(2, "0").toString();
+	}
+}
+
 
 new ColorPicker(
   document.getElementById("color_Picker1"),

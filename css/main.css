@@ -1,10 +1,55 @@
+.overlay{
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	z-index: 10;
+	background-color: rgba(0,0,0,0.5); /*dim the background*/
+  }
+
 .modal_ctn{
     background-color: lightgray;
     padding: 5px;
     width: min-content;
 }
 
-input#hueControl[type="range"] {
+.modal_ctn.center{
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+}
+
+.modal_ctn.topleft{
+	top: 0%;
+	left: 0%;
+}
+
+.modal_ctn.topright{
+	top: 0%;
+	right: 0%;
+}
+
+.modal_ctn.bottomleft{
+	bottom: 0%;
+	left: 0%;
+}
+
+.modal_ctn.bottomright{
+	bottom: 0%;
+	right: 0%;
+}
+
+.modal_ctn .btn_ctn{
+  display: flex;
+  column-gap: 2px;
+}
+
+.modal_ctn .btn_ctn > button{
+flex: 1;
+}
+
+.modal_ctn input#hueControl[type="range"] {
     width: 100%;
     -webkit-appearance: none;
     background: linear-gradient(to right, red, yellow, lime, cyan, blue, magenta, red);
@@ -13,7 +58,7 @@ input#hueControl[type="range"] {
     cursor: pointer;
   }
 
-  input#opacityControl[type="range"]{
+  .modal_ctn  input#opacityControl[type="range"]{
     width: 100%;
     -webkit-appearance: none;
     border-radius: 5px;
@@ -22,8 +67,8 @@ input#hueControl[type="range"] {
     border: 0.5px solid rgba(0, 0, 0, 0.3)
   }
   
-input#hueControl[type="range"]::-webkit-slider-thumb,
-input#opacityControl[type="range"]::-webkit-slider-thumb {
+  .modal_ctn input#hueControl[type="range"]::-webkit-slider-thumb,
+  .modal_ctn input#opacityControl[type="range"]::-webkit-slider-thumb {
     -webkit-appearance: none;
     width: 18px;
     height: 18px;
@@ -32,26 +77,26 @@ input#opacityControl[type="range"]::-webkit-slider-thumb {
     border: 2px solid #666;
   }
 
-  .color_prev{
+  .modal_ctn .color_prev{
     width: 30px;
     height:30px;
   }
 
-  div.col_3{
+  .modal_ctn  div.col_3{
     display:grid;
     grid-template-columns: repeat(3, 33%);
     column-gap: 2px;
     margin-bottom: 25px
   }
 
-  div.col_3 input{
+  .modal_ctn  div.col_3 input{
       width: 30px;
   }
 
-  div.col_3 label{
+  .modal_ctn  div.col_3 label{
     position: relative;
   }
-  div.col_3 label::after{
+  .modal_ctn  div.col_3 label::after{
     content:attr(title);
     color: black;
     font-size: 16px;
