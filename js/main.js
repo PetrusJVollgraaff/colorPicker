@@ -359,7 +359,6 @@ class ColorPicker{
 
   #showOutputColor() {
     var opacity = this.colorOp.hsl.a
-    console.log(opacity, this.colorOp.showFill)
     var background = (this.colorOp.showFill && Number(opacity) > 0)?
         `hsla(${this.colorOp.hsl.h}, ${this.colorOp.hsl.s}%, ${this.colorOp.hsl.l}%, ${Number(this.colorOp.hsl.a)})` :
           ((this.colorOp.showFill && Number(opacity) == 0) || !this.colorOp.showFill )?
@@ -420,6 +419,7 @@ class ColorPicker{
     this.#setHexValue("convert")
     this.#setTopColor()
   }
+
   #changeHue(value, save = true) {
     var newVal = (value < 0)? value % 360 : (value > 360)? value % 360 : (value == "")? 0 : value
     
@@ -455,7 +455,6 @@ class ColorPicker{
   }
 
   #setInputVal(){
-    console.log(this.colortype)
     if(this.colortype == "hsl"){
       HInput.value = this.colorOp[this.colortype].h;
       SInput.value = this.colorOp[this.colortype].s;
